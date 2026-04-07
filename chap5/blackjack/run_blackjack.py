@@ -1,12 +1,10 @@
-class EpisodeGenerator:
-    def __init__(self, env: BlackjackEnv, policy: PlayerPolicy):
-        self.env = env
-        self.policy = policy
+def main():
+    env = BlackjackEnv(seed=42)
+    policy = FixedPolicy()
+    generator = EpisodeGenerator(env, policy)
+    mc = MonteCarloPredictor(gamma=1.0)
 
-    def generate_episode(self) -> list[tuple[BlackjackState, str, int]]:
-        """
-        Returns a sequence of (state, action, reward).
-        Since reward is terminal in blackjack, most rewards will be 0
-        until the final step.
-        """
-        pass
+    V = mc.train(generator, num_episodes=500000)
+
+    # plot usable ace
+    # plot no usable ace
