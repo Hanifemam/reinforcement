@@ -1,8 +1,12 @@
-from dataclasses import dataclass
+class EpisodeGenerator:
+    def __init__(self, env: BlackjackEnv, policy: PlayerPolicy):
+        self.env = env
+        self.policy = policy
 
-@dataclass(frozen=True)
-class BlackjackState:
-    player_sum: int
-    dealer_showing: int
-    usable_ace: bool
-    
+    def generate_episode(self) -> list[tuple[BlackjackState, str, int]]:
+        """
+        Returns a sequence of (state, action, reward).
+        Since reward is terminal in blackjack, most rewards will be 0
+        until the final step.
+        """
+        pass
