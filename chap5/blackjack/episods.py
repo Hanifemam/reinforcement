@@ -36,9 +36,10 @@ def simple_policy(state: BlackjackState) -> str:
 
 env = BlackjackEnv(seed=42)
 episode_generator = EpisodeGenerator(env, simple_policy)
-for _ in range(3):
-    ep = episode_generator.generate_episode()
-    print("Episode:")
-    for step in ep:
-        print(step)
-    print()
+if __name__ == "__main__":
+    for _ in range(3):
+        ep = episode_generator.generate_episode()
+        print("Episode:")
+        for step in ep:
+            print(step)
+        print()
