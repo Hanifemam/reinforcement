@@ -28,6 +28,33 @@ class EpisodeGenerator:
             state = next_state if next_state is not None else state
 
         return episode
+    
+    def generate_episode_es(env: BlackjackEnv, policy):
+        episode = []
+
+        start_state = BlackjackState(
+            player_sum=int(env.rng.integers(12, 22)),
+            dealer_showing=int(env.rng.integers(1, 11)),
+            usable_ace=bool(env.rng.integers(0, 2))
+        )
+        start_action = int(env.rng.integers(0, 2))
+
+        env.set_state(start_state)
+
+        state = env.get_state()
+        action = start_action
+
+        next_state, reward, done = env.step(action)
+        episode.append((state, action, reward))
+        state = next_state
+
+        while not done:
+            action = policy_action(state, policy)
+            next_state, reward, done = env.step(action)
+            episode.append((state, action, reward))
+            state = next_state
+
+        return episode
 
 
 def simple_policy(state: BlackjackState) -> str:
@@ -43,3 +70,5 @@ if __name__ == "__main__":
         for step in ep:
             print(step)
         print()
+        
+        

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
+import random
 
 @dataclass(frozen=True)
 class BlackjackState:
@@ -105,3 +106,36 @@ class BlackjackEnv:
 
         else:
             raise ValueError("Action must be 'hit' or 'stick'")
+    def set_state(self, state: BlackjackState):
+        self.dealer_hand = [state.dealer_showing, self.draw_card()]
+        if state.usable_ace:
+            other = state.player_sum - 11
+            self.player_hand = [1, other]
+        else:
+            found = False
+            for c1 in range(1, 11):
+                for c2 in range(1, 11):
+                    hand = [c1, c2]
+                    if self.sum_hand(hand) == state.player_sum and self.usable_ace(hand) == state.usable_ace:
+                        self.player_hand = hand
+                        found = True
+                        break
+                if found:
+                    break
+
+            if not found:
+                raise ValueError(f"Cannot construct hand for state {state}")
+            
+    import random
+
+    def random_start_state(self):
+        return BlackjackState(
+            player_sum=random.randint(12, 21),
+            dealer_showing=random.randint(1, 10),
+            usable_ace=random.choice([False, True])
+        )
+        
+    def random_start_action(rng):
+        return int(rng.integers(0, 2))
+    
+    
