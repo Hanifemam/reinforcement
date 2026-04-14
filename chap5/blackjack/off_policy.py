@@ -1,44 +1,72 @@
+"""Off-policy Monte Carlo control for the Blackjack toy environment.
+
+The original version in this repo had a few bugs:
+- actions used integers while the environment expects strings ("hit"/"stick"),
+- the behaviour policy signature did not match the generator,
+- env.reset()/step return tuples that were unpacked incorrectly,
+- and the behaviour policy function was referenced without ``self``.
+
+This file now runs a working off-policy control loop and includes a
+lightweight self-test when executed directly.
+"""
+
 from collections import defaultdict
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 import random
 
 from env import BlackjackEnv, BlackjackState
-from episods import EpisodeGenerator, simple_policy
+
+
+Action = str  # "hit" or "stick"
 
 
 class OffPolicy:
     def __init__(self) -> None:
-        self.ACTIONS = [0, 1]
+        # Keep the action vocabulary in one place; order is stick (0), hit (1)
+        self.ACTIONS: List[Action] = ["stick", "hit"]
 
-    def behavior_policy(self, state):
-        return random.choice([0, 1])
+    def behavior_policy(self, state: BlackjackState, rng) -> Action:
+        """Exploring behavior policy: choose uniformly at random."""
+        if hasattr(rng, "integers"):
+            idx = int(rng.integers(0, 2))
+        elif hasattr(rng, "randint"):
+            idx = rng.randint(0, 1)
+        else:
+            idx = random.randint(0, 1)
+        return self.ACTIONS[idx]
 
-    def behavior_prob(state, action) -> float:
+    def behavior_prob(self, state: BlackjackState, action: Action) -> float:
+        # Uniform over two actions
         return 0.5
 
-    def greedy_action(self, state, Q):
-        return 0 if Q[(state, 0)] >= Q[(state, 1)] else 1
+    def greedy_action(self, state: BlackjackState, Q) -> Action:
+        # Prefer "stick" on ties to keep behaviour deterministic.
+        q_stick = Q[(state, "stick")]
+        q_hit = Q[(state, "hit")]
+        return "stick" if q_stick >= q_hit else "hit"
 
-    def generate_episode_behavior(self, env, behavior_policy_fn):
+    def generate_episode_behavior(
+        self, env: BlackjackEnv, behavior_policy_fn: Callable[[BlackjackState, random.Random], Action]
+    ) -> List[Tuple[BlackjackState, Action, int]]:
         episode = []
-        state = env.reset()
+        state, _ = env.reset()
         done = False
 
         while not done:
             action = behavior_policy_fn(state, env.rng)
-            next_state, reward, done = env.step(action)
+            next_state, reward, done, _ = env.step(action)
             episode.append((state, action, reward))
-            state = next_state
+            state = next_state if next_state is not None else state
 
         return episode
 
-    def mc_off_policy_control(self, env, num_episodes: int):
+    def mc_off_policy_control(self, env: BlackjackEnv, num_episodes: int):
         Q = defaultdict(float)
         C = defaultdict(float)
         target_policy = {}
 
         for _ in range(num_episodes):
-            episode = self.generate_episode_behavior(env, behavior_policy)
+            episode = self.generate_episode_behavior(env, self.behavior_policy)
 
             G = 0.0
             W = 1.0
@@ -61,3 +89,16 @@ class OffPolicy:
                 W *= 1.0 / self.behavior_prob(state, action)
 
         return Q, target_policy
+
+
+if __name__ == "__main__":
+    # Quick smoke test so running `python off_policy.py` exercises the code.
+    env = BlackjackEnv(seed=0)
+    agent = OffPolicy()
+    Q, policy = agent.mc_off_policy_control(env, num_episodes=200)
+
+    # Report how many state-action values we touched and show one example.
+    print(f"Learned {len(Q)} state-action values over 200 episodes.")
+    sample_sa = next(iter(Q.keys()))
+    print("Example entry:")
+    print(f"  state={sample_sa[0]} | action={sample_sa[1]} | Q={Q[sample_sa]:.3f}")

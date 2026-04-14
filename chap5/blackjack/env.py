@@ -1,6 +1,11 @@
 from dataclasses import dataclass
-import numpy as np
 import random
+
+# numpy is optional; fall back to Python's random when unavailable.
+try:
+    import numpy as np  # type: ignore
+except ImportError:  # pragma: no cover - allows running without numpy installed
+    np = None
 
 @dataclass(frozen=True)
 class BlackjackState:
@@ -11,7 +16,10 @@ class BlackjackState:
 
 class BlackjackEnv:
     def __init__(self, seed: int, natural: bool = False):
-        self.rng = np.random.default_rng(seed)
+        if np is not None:
+            self.rng = np.random.default_rng(seed)
+        else:
+            self.rng = random.Random(seed)
         self.player_hand = None
         self.dealer_hand = None
         self.natural = natural
@@ -25,7 +33,12 @@ class BlackjackEnv:
             "10": 10, "J": 10, "Q": 10,
             "K": 10
         }
-        return possible_cards_dict[self.rng.choice(list(possible_cards_dict.keys()))]
+        keys = list(possible_cards_dict.keys())
+        if hasattr(self.rng, "choice"):
+            card = self.rng.choice(keys)
+        else:  # Random objects before 3.11 lack choice; use module-level
+            card = random.choice(keys)
+        return possible_cards_dict[card]
 
     def draw_hand(self) -> list[int]:
         hand = []
@@ -136,6 +149,10 @@ class BlackjackEnv:
         )
         
     def random_start_action(rng):
-        return int(rng.integers(0, 2))
+        if hasattr(rng, "integers"):
+            return int(rng.integers(0, 2))
+        if hasattr(rng, "randint"):
+            return rng.randint(0, 1)
+        return random.randint(0, 1)
     
     
