@@ -4,18 +4,28 @@ import random
 class RandomWalkMRP:
     def __init__(self, n_states=100):
         self.n_states = n_states
-        self.states = list(range(self.n_states))
+        self.states = list(range(n_states))
         self.state = None
-        self.ACTIONS = ["l", "r"]
 
     def reset(self):
         self.state = self.n_states // 2
         return self.state
 
     def step(self):
-        action = random.choice(self.ACTIONS)
+        move = random.choice([-1, 1])
+        next_state = self.state + move
 
-        if action == "l":
-            self.state -= 1
+        if next_state < 0:
+            reward = 0
+            done = True
+            next_state = "left_terminal"
+        elif next_state >= self.n_states:
+            reward = 1
+            done = True
+            next_state = "right_terminal"
         else:
-            self.state += 1
+            reward = 0
+            done = False
+
+        self.state = next_state if not done else self.state
+        return next_state, reward, done
