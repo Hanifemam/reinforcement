@@ -19,6 +19,9 @@ class WindyGridworldEnv:
         self.state = self.start
         return self.start
 
+    def reset(self):
+        return self.restart()
+
     def step(self, action):
         row, col = self.state
         dr, dc = self.actions[action]

@@ -1,8 +1,11 @@
 import numpy as np
-from policy import epsilon_greedy
+try:
+    from policy import epsilon_greedy
+except ModuleNotFoundError:
+    from .policy import epsilon_greedy
 
 
-def sarsa(env, num_episodes, alpha, epsilon, gamma):
+def sarsa(env, num_episodes=170, alpha=0.5, epsilon=0.1, gamma=1.0):
     Q = np.zeros((env.height, env.width, 4))
     steps_per_episode = []
     for episode in range(num_episodes):
